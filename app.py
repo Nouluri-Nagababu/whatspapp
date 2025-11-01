@@ -1,9 +1,6 @@
 import streamlit as st
-import pyautogui
-import webbrowser
 import time
-import threading
-import os
+import base64
 
 # Page configuration
 st.set_page_config(
@@ -12,7 +9,7 @@ st.set_page_config(
     layout="centered"
 )
 
-# Custom CSS for better styling
+# Custom CSS
 st.markdown("""
 <style>
     .main-header {
@@ -20,10 +17,6 @@ st.markdown("""
         color: #25D366;
         text-align: center;
         margin-bottom: 2rem;
-    }
-    .sub-header {
-        color: #128C7E;
-        margin-top: 2rem;
     }
     .success-message {
         padding: 1rem;
@@ -46,19 +39,6 @@ st.markdown("""
         border-radius: 0.5rem;
         color: #0c5460;
     }
-    .stButton button {
-        width: 100%;
-        background-color: #25D366;
-        color: white;
-        font-weight: bold;
-        border: none;
-        padding: 0.5rem 1rem;
-        border-radius: 0.5rem;
-    }
-    .stButton button:hover {
-        background-color: #128C7E;
-        color: white;
-    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -70,23 +50,21 @@ with st.sidebar:
     st.header("ℹ️ Instructions")
     st.markdown("""
     1. **Fill in all fields** in the main form
-    2. **Ensure WhatsApp Web is logged in** in your browser
-    3. **Click 'Start Sending Messages'**
-    4. **Don't touch keyboard/mouse** during sending
-    5. **Keep browser window visible**
+    2. **Click 'Generate Instructions'**
+    3. **Follow the step-by-step guide**
+    4. **Run the provided Python script on your computer**
     
     **⚠️ Important:**
     - Use responsibly
     - Respect privacy
     - Avoid spam
-    - Stable internet required
+    - Requires Python on your local machine
     """)
 
 # Main form
 with st.form("whatsapp_form"):
-    st.markdown('<h3 class="sub-header">Message Details</h3>', unsafe_allow_html=True)
+    st.markdown('<h3>Message Details</h3>', unsafe_allow_html=True)
     
-    # Create two columns for better layout
     col1, col2 = st.columns(2)
     
     with col1:
@@ -99,9 +77,9 @@ with st.form("whatsapp_form"):
         num_times = st.number_input(
             "**Number of Messages** 🔢",
             min_value=1,
-            max_value=500,
+            max_value=100,
             value=10,
-            help="How many messages to send (max 500 for safety)"
+            help="How many messages to send (max 100 for safety)"
         )
     
     with col2:
@@ -113,9 +91,9 @@ with st.form("whatsapp_form"):
         
         delay = st.slider(
             "**Delay between messages (seconds)** ⏱️",
-            min_value=0.1,
-            max_value=2.0,
-            value=0.5,
+            min_value=0.5,
+            max_value=5.0,
+            value=1.0,
             help="Delay between each message"
         )
     
@@ -126,66 +104,8 @@ with st.form("whatsapp_form"):
         help="The message that will be sent repeatedly"
     )
     
-    # Advanced options
-    with st.expander("Advanced Options"):
-        load_time = st.slider(
-            "WhatsApp Web loading time (seconds)",
-            min_value=5,
-            max_value=30,
-            value=15,
-            help="Time to wait for WhatsApp Web to load"
-        )
-        
-        browser_choice = st.selectbox(
-            "Browser preference",
-            ["Default Browser", "Chrome", "Firefox", "Safari"],
-            help="Choose your preferred browser"
-        )
-    
-    # Submit button
-    submit_button = st.form_submit_button("🚀 Start Sending Messages")
+    submit_button = st.form_submit_button("🚀 Generate Instructions & Code")
 
-# Message sending function
-def send_whatsapp_messages(recipient, msg, count, delay_time, load_time):
-    """Function to send WhatsApp messages"""
-    try:
-        # Show status
-        st.session_state['sending'] = True
-        st.session_state['progress'] = 0
-        
-        # Open WhatsApp Web
-        webbrowser.open(f"https://web.whatsapp.com/send?phone={recipient}")
-        
-        # Wait for WhatsApp to load
-        time.sleep(load_time)
-        
-        # Send messages with progress tracking
-        for i in range(count):
-            if not st.session_state.get('sending', True):
-                break
-                
-            pyautogui.typewrite(msg)
-            pyautogui.press("enter")
-            time.sleep(delay_time)
-            
-            # Update progress
-            progress = (i + 1) / count
-            st.session_state['progress'] = progress
-            
-        st.session_state['sending'] = False
-        return True, f"✅ Successfully sent {count} messages!"
-        
-    except Exception as e:
-        st.session_state['sending'] = False
-        return False, f"❌ Error: {str(e)}"
-
-# Initialize session state
-if 'sending' not in st.session_state:
-    st.session_state.sending = False
-if 'progress' not in st.session_state:
-    st.session_state.progress = 0
-
-# Handle form submission
 if submit_button:
     if not all([your_number, recipient_number, message]):
         st.error("🚫 Please fill in all required fields!")
@@ -196,65 +116,79 @@ if submit_button:
         elif not recipient_number.startswith('+'):
             st.error("🚫 Please include country code in recipient's number (e.g., +91)")
         else:
-            # Show warnings
-            st.markdown('<div class="warning-message">⚠️ Please don\'t touch your keyboard or mouse while messages are being sent!</div>', unsafe_allow_html=True)
-            st.markdown('<div class="info-message">📱 Make sure WhatsApp Web is open and logged in on your default browser.</div>', unsafe_allow_html=True)
-            
-            # Create columns for progress and stop button
-            col1, col2 = st.columns([3, 1])
-            
-            with col1:
-                progress_bar = st.progress(st.session_state.progress)
-                status_text = st.empty()
-            
-            with col2:
-                stop_button = st.button("🛑 Stop", key="stop")
-                if stop_button:
-                    st.session_state.sending = False
-                    st.warning("Stopping message sending...")
-            
-            # Run in a separate thread
-            def run_messages():
-                success, result = send_whatsapp_messages(
-                    recipient_number, 
-                    message, 
-                    num_times, 
-                    delay,
-                    load_time
-                )
-                
-                if success:
-                    st.balloons()
-                    st.markdown(f'<div class="success-message">{result}</div>', unsafe_allow_html=True)
-                else:
-                    st.markdown(f'<div class="warning-message">{result}</div>', unsafe_allow_html=True)
-            
-            # Start the process
-            thread = threading.Thread(target=run_messages)
-            thread.daemon = True
-            thread.start()
-            
-            # Progress updater
-            while st.session_state.sending and st.session_state.progress < 1.0:
-                progress_bar.progress(st.session_state.progress)
-                status_text.text(f"Progress: {int(st.session_state.progress * 100)}%")
-                time.sleep(0.1)
+            # Generate Python script
+            python_script = f'''import pyautogui
+import webbrowser
+import time
 
-# Footer
-st.markdown("---")
-st.markdown("""
-### 📋 Usage Tips:
-- **Test with 1-2 messages** first to ensure it works
-- **Use appropriate delays** to avoid being flagged as spam
-- **Keep the browser window active** and don't minimize it
-- **Ensure good internet connection** throughout the process
+# WhatsApp configuration
+phone_number = "{recipient_number}"
+message = "{message}"
+num_messages = {num_times}
+delay_between_messages = {delay}
 
-### 🔒 Privacy & Safety:
-- Only send messages to people who have consented
-- Don't use for spam or harassment
-- Respect WhatsApp's terms of service
-- Use responsibly and ethically
-""")
+print("🚀 Starting WhatsApp Message Sender...")
+print(f"📱 Sending {{num_messages}} messages to {{phone_number}}")
+print(f"💬 Message: {{message}}")
+print(f"⏱️ Delay: {{delay_between_messages}} seconds")
 
-# Add some space at the bottom
-st.markdown("<br><br>", unsafe_allow_html=True)
+# Open WhatsApp Web
+print("🌐 Opening WhatsApp Web...")
+webbrowser.open(f"https://web.whatsapp.com/send?phone={{phone_number}}")
+
+print("⏳ Waiting 15 seconds for WhatsApp to load...")
+print("⚠️ Please ensure WhatsApp Web is logged in and don't touch your keyboard/mouse!")
+time.sleep(15)
+
+print("📤 Starting to send messages...")
+# Send messages
+for i in range(num_messages):
+    pyautogui.typewrite(message)
+    pyautogui.press("enter")
+    time.sleep(delay_between_messages)
+    print(f"✅ Sent message {{i+1}}/{{num_messages}}")
+
+print("🎉 All messages sent successfully!")
+'''
+
+            # Display instructions
+            st.markdown('<div class="info-message">📋 Follow these steps to send messages:</div>', unsafe_allow_html=True)
+            
+            st.markdown("""
+            ### Step-by-Step Guide:
+
+            1. **Copy the Python code below**
+            2. **Save it as a `.py` file on your computer** (e.g., `whatsapp_sender.py`)
+            3. **Install required packages** (if not already installed):
+               ```bash
+               pip install pyautogui
+               ```
+            4. **Run the script**:
+               ```bash
+               python whatsapp_sender.py
+               ```
+            5. **Follow the on-screen instructions**
+            """)
+
+            # Display the code
+            st.subheader("📜 Python Script:")
+            st.code(python_script, language='python')
+            
+            # Download button
+            st.download_button(
+                label="📥 Download Python Script",
+                data=python_script,
+                file_name="whatsapp_sender.py",
+                mime="text/python"
+            )
+            
+            # Important warnings
+            st.markdown('<div class="warning-message">⚠️ IMPORTANT WARNINGS:</div>', unsafe_allow_html=True)
+            st.markdown("""
+            - **Keep the browser window visible** during execution
+            - **Don't touch keyboard/mouse** while script is running
+            - **Ensure WhatsApp Web is already logged in**
+            - **Use responsibly and respect privacy**
+            - **Test with 1-2 messages first** to verify it works
+            """)
+
