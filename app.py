@@ -1,15 +1,12 @@
 import streamlit as st
-import time
-import base64
+import urllib.parse
 
-# Page configuration
 st.set_page_config(
     page_title="WhatsApp Message Sender",
     page_icon="📱",
     layout="centered"
 )
 
-# Custom CSS
 st.markdown("""
 <style>
     .main-header {
@@ -18,177 +15,136 @@ st.markdown("""
         text-align: center;
         margin-bottom: 2rem;
     }
-    .success-message {
-        padding: 1rem;
-        background-color: #d4edda;
-        border: 1px solid #c3e6cb;
+    .stButton button {
+        width: 100%;
+        background-color: #25D366;
+        color: white;
+        font-weight: bold;
+        border: none;
+        padding: 0.5rem 1rem;
         border-radius: 0.5rem;
-        color: #155724;
-    }
-    .warning-message {
-        padding: 1rem;
-        background-color: #fff3cd;
-        border: 1px solid #ffeaa7;
-        border-radius: 0.5rem;
-        color: #856404;
-    }
-    .info-message {
-        padding: 1rem;
-        background-color: #d1ecf1;
-        border: 1px solid #bee5eb;
-        border-radius: 0.5rem;
-        color: #0c5460;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# Main header
-st.markdown('<h1 class="main-header">📱 WhatsApp Message Sender</h1>', unsafe_allow_html=True)
+st.markdown('<h1 class="main-header">📱 Direct WhatsApp Message Sender</h1>', unsafe_allow_html=True)
 
-# Sidebar for instructions
-with st.sidebar:
-    st.header("ℹ️ Instructions")
-    st.markdown("""
-    1. **Fill in all fields** in the main form
-    2. **Click 'Generate Instructions'**
-    3. **Follow the step-by-step guide**
-    4. **Run the provided Python script on your computer**
+with st.form("message_form"):
+    st.subheader("Send Message Directly")
     
-    **⚠️ Important:**
-    - Use responsibly
-    - Respect privacy
-    - Avoid spam
-    - Requires Python on your local machine
-    """)
-
-# Main form
-with st.form("whatsapp_form"):
-    st.markdown('<h3>Message Details</h3>', unsafe_allow_html=True)
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        your_number = st.text_input(
-            "**Your WhatsApp Number** 📞",
-            placeholder="+919059170516",
-            help="Your WhatsApp number with country code"
-        )
-        
-        num_times = st.number_input(
-            "**Number of Messages** 🔢",
-            min_value=1,
-            max_value=100,
-            value=10,
-            help="How many messages to send (max 100 for safety)"
-        )
-    
-    with col2:
-        recipient_number = st.text_input(
-            "**Recipient's Number** 👥",
-            placeholder="+919059170516", 
-            help="Recipient's WhatsApp number with country code"
-        )
-        
-        delay = st.slider(
-            "**Delay between messages (seconds)** ⏱️",
-            min_value=0.5,
-            max_value=5.0,
-            value=1.0,
-            help="Delay between each message"
-        )
-    
-    message = st.text_area(
-        "**Message Content** 💬",
-        value="Hello! This is an automated message.",
-        height=100,
-        help="The message that will be sent repeatedly"
+    phone_number = st.text_input(
+        "**Recipient's WhatsApp Number**",
+        placeholder="919059170516",
+        help="Enter phone number with country code (without +)"
     )
     
-    submit_button = st.form_submit_button("🚀 Generate Instructions & Code")
+    message = st.text_area(
+        "**Message**",
+        value="Hello!",
+        height=100
+    )
+    
+    submit = st.form_submit_button("📤 Send WhatsApp Message")
 
-if submit_button:
-    if not all([your_number, recipient_number, message]):
-        st.error("🚫 Please fill in all required fields!")
+if submit:
+    if phone_number and message:
+        # URL encode the message
+        encoded_message = urllib.parse.quote(message)
+        
+        # Create WhatsApp direct link
+        whatsapp_url = f"https://web.whatsapp.com/send?phone={phone_number}&text={encoded_message}"
+        
+        st.success("✅ Click the button below to open WhatsApp and send your message!")
+        
+        # Display direct link
+        st.markdown(f"""
+        ### Ready to Send!
+        
+        **Number:** {phone_number}  
+        **Message:** {message}
+        
+        Click the button below to open WhatsApp Web:
+        """)
+        
+        st.markdown(f'<a href="{whatsapp_url}" target="_blank"><button style="background-color:#25D366; color:white; padding:10px 20px; border:none; border-radius:5px; font-size:16px;">📱 Open WhatsApp to Send</button></a>', unsafe_allow_html=True)
+        
+        # Alternative: API-based approach (theoretical)
+        st.info("💡 **Tip:** Make sure you're logged into WhatsApp Web in your browser!")
+        
     else:
-        # Validation
-        if not your_number.startswith('+'):
-            st.error("🚫 Please include country code in your number (e.g., +91)")
-        elif not recipient_number.startswith('+'):
-            st.error("🚫 Please include country code in recipient's number (e.g., +91)")
-        else:
-            # Generate Python script
-            python_script = f'''import pyautogui
+        st.error("Please enter both phone number and message")
+
+# Multiple Messages Section
+st.markdown("---")
+st.subheader("Send Multiple Messages")
+
+with st.form("multiple_messages"):
+    phone_number2 = st.text_input(
+        "Recipient's Number for Multiple Messages",
+        placeholder="919059170516"
+    )
+    
+    message2 = st.text_area(
+        "Message to Repeat",
+        value="Hello!"
+    )
+    
+    repeat_count = st.slider("Number of times to send", 1, 50, 5)
+    
+    submit_multiple = st.form_submit_button("🔄 Generate Multiple Message Links")
+
+if submit_multiple:
+    if phone_number2 and message2:
+        encoded_message = urllib.parse.quote(message2)
+        
+        st.success(f"Generated {repeat_count} message links!")
+        
+        for i in range(repeat_count):
+            whatsapp_url = f"https://web.whatsapp.com/send?phone={phone_number2}&text={encoded_message}"
+            st.markdown(f'**Message {i+1}:** <a href="{whatsapp_url}" target="_blank">Click to Send</a>', unsafe_allow_html=True)
+
+# Instructions
+st.markdown("---")
+st.subheader("📋 How to Use:")
+st.markdown("""
+1. **Enter the recipient's phone number** (with country code, without +)
+2. **Type your message**
+3. **Click "Send WhatsApp Message"**
+4. **Click the generated link** to open WhatsApp Web
+5. **Press Enter** in WhatsApp to send the message
+
+**For multiple messages:**
+- Click each generated link one by one
+- Or use the automated method below
+""")
+
+# Browser Automation Alternative
+st.markdown("---")
+st.subheader("🔄 Automated Sending (Local Computer)")
+
+st.info("""
+For fully automated sending without manual clicking, you'll need to run this on your local computer. 
+The web version can't control your browser automatically due to security restrictions.
+""")
+
+local_code = '''
+import pyautogui
 import webbrowser
 import time
+import urllib.parse
 
-# WhatsApp configuration
-phone_number = "{recipient_number}"
-message = "{message}"
-num_messages = {num_times}
-delay_between_messages = {delay}
+def send_whatsapp_message(phone, message, count=1, delay=1):
+    encoded_msg = urllib.parse.quote(message)
+    
+    for i in range(count):
+        webbrowser.open(f"https://web.whatsapp.com/send?phone={phone}&text={encoded_msg}")
+        time.sleep(10)  # Wait for WhatsApp to load
+        pyautogui.press('enter')  # Send message
+        time.sleep(delay)
+        print(f"Sent message {i+1}/{count}")
 
-print("🚀 Starting WhatsApp Message Sender...")
-print(f"📱 Sending {{num_messages}} messages to {{phone_number}}")
-print(f"💬 Message: {{message}}")
-print(f"⏱️ Delay: {{delay_between_messages}} seconds")
-
-# Open WhatsApp Web
-print("🌐 Opening WhatsApp Web...")
-webbrowser.open(f"https://web.whatsapp.com/send?phone={{phone_number}}")
-
-print("⏳ Waiting 15 seconds for WhatsApp to load...")
-print("⚠️ Please ensure WhatsApp Web is logged in and don't touch your keyboard/mouse!")
-time.sleep(15)
-
-print("📤 Starting to send messages...")
-# Send messages
-for i in range(num_messages):
-    pyautogui.typewrite(message)
-    pyautogui.press("enter")
-    time.sleep(delay_between_messages)
-    print(f"✅ Sent message {{i+1}}/{{num_messages}}")
-
-print("🎉 All messages sent successfully!")
+# Usage
+send_whatsapp_message("919059170516", "Hello!", count=5, delay=2)
 '''
 
-            # Display instructions
-            st.markdown('<div class="info-message">📋 Follow these steps to send messages:</div>', unsafe_allow_html=True)
-            
-            st.markdown("""
-            ### Step-by-Step Guide:
-
-            1. **Copy the Python code below**
-            2. **Save it as a `.py` file on your computer** (e.g., `whatsapp_sender.py`)
-            3. **Install required packages** (if not already installed):
-               ```bash
-               pip install pyautogui
-               ```
-            4. **Run the script**:
-               ```bash
-               python whatsapp_sender.py
-               ```
-            5. **Follow the on-screen instructions**
-            """)
-
-            # Display the code
-            st.subheader("📜 Python Script:")
-            st.code(python_script, language='python')
-            
-            # Download button
-            st.download_button(
-                label="📥 Download Python Script",
-                data=python_script,
-                file_name="whatsapp_sender.py",
-                mime="text/python"
-            )
-            
-            # Important warnings
-            st.markdown('<div class="warning-message">⚠️ IMPORTANT WARNINGS:</div>', unsafe_allow_html=True)
-            st.markdown("""
-            - **Keep the browser window visible** during execution
-            - **Don't touch keyboard/mouse** while script is running
-            - **Ensure WhatsApp Web is already logged in**
-            - **Use responsibly and respect privacy**
-            - **Test with 1-2 messages first** to verify it works
-            """)
-
+st.code(local_code, language='python')
